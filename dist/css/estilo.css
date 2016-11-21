@@ -1,0 +1,58 @@
+
+.fondo {
+    width: 100%; height: 100%; position: fixed; top: 0px; left: 0px; z-index: 990;opacity: 0.8;background:#fff;
+}
+#flotanteError {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 50%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+#flotanteError2 {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 50%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+#flotanteError3 {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 80%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+#flotanteSuccess {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 50%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+#flotanteSuccess2 {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 50%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+#flotanteSuccess3 {
+    z-index: 999; border: 0px solid #fff; margin-top: -756px; margin-left: -153px; top: 80%; right: 0%; padding: 12px; position: fixed; width: 265px; background-color: #fff; border-radius: 3px;
+}
+
+.flotanteX {
+	z-index: 999; border: 0px solid #fff; margin-top: 0px; margin-left: -153px; top: 50%; right:10%; padding: 12px; position: fixed; width: 80%; background-color: #fff; border-radius: 3px;
+}
+
+#capaFondo {
+	visibility:hidden;
+	position:fixed;
+	padding:0px;
+	left:0px;
+	top:0px;
+	right:0px;
+	bottom:0px;
+	background:#000;
+	opacity: 0.8;
+	width:100%;
+	height:100%;
+	z-index:999;
+	border: 0px solid #fff;
+	margin-top: 0px;
+}
+
+#capaFondo2 {
+	
+}
+
+
+
+
+
+
