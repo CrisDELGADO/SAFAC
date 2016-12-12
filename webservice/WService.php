@@ -24,6 +24,16 @@ $app->put('/mote/:id','updateMote');
 $app->get('/sensor/','getSensores');
 $app->get('/sensor/:id','getSensor');
 
+//REGLAS
+$app->get('/regla/','getReglas');
+$app->get('/regla/piscina/:id','getReglaPiscina');
+
+//CONDICIONES
+$app->get('/condicion/','getCondiciones');
+
+//ALERTAS
+$app->get('/alerta/','getAlertas');
+
 //USUARIOS
 $app->get('/usuario/:id','getUsuario');
 $app->get('/usuario/logeo/:username/:password','logeoUsuario');
@@ -31,6 +41,7 @@ $app->put('/usuario/:id','updateUsuario');
 
 //PISCINAS
 $app->get('/piscina/:id','getPiscina');
+$app->get('/piscina/','getPiscinas');
 
 //ASIGANACION SENSORES PISCINA
 $app->get('/sensoractuador/piscina/:id','getSensorActuadorPiscina');
@@ -153,7 +164,7 @@ function updateEmpresa($id) {
 
 //FUNCIONES MOTES
 function getMotes() {
-    $sql = "SELECT * FROM mote ORDER BY pin_mote";
+    $sql = "SELECT * FROM mote ORDER BY mot_pin";
     try {
         $db = getConnection();
         $stmt = $db->query($sql);
@@ -166,7 +177,7 @@ function getMotes() {
 }
 
 function getMote($id) {
-    $sql = "SELECT * FROM mote WHERE cod_mote=:id";
+    $sql = "SELECT * FROM mote,empresa WHERE mote.mot_id=:id AND empresa.emp_id=mote.emp_id";
     try {
         $db = getConnection();
         $stmt = $db->prepare($sql);
@@ -182,8 +193,8 @@ function getMote($id) {
 
 function getMoteSensor($id) {
     $sql = "SELECT * FROM mote_sensor_actuador, sensor_actuador, tipo_sensor_actuador
-     WHERE mote_sensor_actuador.cod_mote=:id AND mote_sensor_actuador.cod_sensor_actuador=sensor_actuador.cod_sensor_actuador
-     AND sensor_actuador.cod_tipo_sensor_actuador=tipo_sensor_actuador.cod_tipo_sensor_actuador";
+     WHERE mote_sensor_actuador.mot_id=:id AND mote_sensor_actuador.sen_id=sensor_actuador.sen_id
+     AND sensor_actuador.tse_id=tipo_sensor_actuador.tse_id";
     try {
         $db = getConnection();
         $stmt = $db->prepare($sql);
@@ -201,10 +212,10 @@ function getMoteSensorEmpresa($id) {
     //$sql = "SELECT * FROM mote_sensor_actuador, mote
      //WHERE mote_sensor_actuador.cod_mote=mote.cod_mote AND mote.cod_empresa=:id AND cod_mote_sensor_actuador<>(SELECT cod_mote_sensor_actuador FROM piscina_mote_sensor_actuador)";
     $sql = "SELECT * FROM mote_sensor_actuador, mote, sensor_actuador
-     WHERE mote_sensor_actuador.cod_mote=mote.cod_mote AND mote.cod_empresa=:id AND 
-     mote_sensor_actuador.cod_sensor_actuador=sensor_actuador.cod_sensor_actuador AND NOT EXISTS 
-     (SELECT * FROM piscina_mote_sensor_actuador WHERE cod_mote_sensor_actuador=mote_sensor_actuador.cod_mote_sensor_actuador)
-     ORDER BY mote.mac_mote";
+     WHERE mote_sensor_actuador.mot_id=mote.mot_id AND mote.emp_id=:id AND 
+     mote_sensor_actuador.sen_id=sensor_actuador.sen_id AND NOT EXISTS 
+     (SELECT * FROM piscina_mote_sensor_actuador WHERE mse_id=mote_sensor_actuador.mse_id)
+     ORDER BY mote.mot_mac";
      
 
     try {
@@ -240,41 +251,41 @@ function addMote(){
 
     $estados = $mote->estados;
 
- 	$sql ="insert into mote (mac_mote,cod_empresa,estado_mote) values (:mac_mote, :cod_empresa, :estado_mote)";
+ 	$sql ="insert into mote (mot_mac,emp_id,mot_estado) values (:mot_mac, :emp_id, :mot_estado)";
 	$db = getConnection();
 
     try{
 		
         $db->beginTransaction(); 
 		$stmt = $db->prepare($sql);
-		$stmt -> bindParam("mac_mote",$mote->mac_mote);
-		$stmt -> bindParam("cod_empresa",$mote->cod_empresa);
-        $stmt -> bindParam("estado_mote",$mote->estado_mote);
+		$stmt -> bindParam("mot_mac",$mote->mot_mac);
+		$stmt -> bindParam("emp_id",$mote->emp_id);
+        $stmt -> bindParam("mot_estado",$mote->mot_estado);
         
 		$stmt -> execute();
 
-        $sql3 = "SELECT * FROM mote ORDER BY cod_mote DESC LIMIT 1";
+        $sql3 = "SELECT * FROM mote ORDER BY mot_id DESC LIMIT 1";
         $stmt3 = $db->prepare($sql3);
         $stmt3 -> execute();
         $idUltimo = 0;
    
         while($fila = $stmt3->fetchObject()){
-            $idUltimo = $fila->cod_mote;
+            $idUltimo = $fila->mot_id;
         }
 
 
         for($i=0;$i<count($sensores);$i++){
-            $cod_sensor_actuador = $sensores[$i];
-            $pin_mote = $pines[$i];
-            $estado_mote_sensor_actuador = $estados[$i];
+            $sen_id = $sensores[$i];
+            $mse_pin = $pines[$i];
+            $mse_estado = $estados[$i];
             
             
-            $sql2 = "insert into mote_sensor_actuador (cod_sensor_actuador, cod_mote, pin_mote, estado_mote_sensor_actuador) values (:cod_sensor_actuador,:cod_mote,:pin_mote,:estado_mote_sensor_actuador)"; 
+            $sql2 = "insert into mote_sensor_actuador (sen_id, mot_id, mse_pin, mse_estado) values (:sen_id,:mot_id,:mse_pin,:mse_estado)"; 
             $stmt2 = $db->prepare($sql2);
-            $stmt2 -> bindParam("cod_sensor_actuador",$cod_sensor_actuador);
-            $stmt2 -> bindParam("cod_mote",$idUltimo);
-            $stmt2 -> bindParam("pin_mote",$pin_mote);
-            $stmt2 -> bindParam("estado_mote_sensor_actuador",$estado_mote_sensor_actuador);
+            $stmt2 -> bindParam("sen_id",$sen_id);
+            $stmt2 -> bindParam("mot_id",$idUltimo);
+            $stmt2 -> bindParam("mse_pin",$mse_pin);
+            $stmt2 -> bindParam("mse_estado",$mse_estado);
             $stmt2 -> execute();
             
         }
@@ -310,14 +321,15 @@ function updateMote($id){
     $estados = $mote->estados;
     $codigos = $mote->codigos;
 
-    $sql = "UPDATE mote SET mac_mote=:mac_mote, cod_empresa=:cod_empresa WHERE cod_mote=:cod_mote";
+    $sql = "UPDATE mote SET mot_mac=:mot_mac, emp_id=:emp_id, mot_estado=:mot_estado WHERE mot_id=:mot_id";
     $db = getConnection();
     try {
         $db->beginTransaction(); 
         $stmt = $db->prepare($sql);
-        $stmt -> bindParam("mac_mote",$mote->mac_mote);
-        $stmt -> bindParam("cod_empresa",$mote->cod_empresa);
-        $stmt->bindParam("cod_mote", $id);
+        $stmt -> bindParam("mot_mac",$mote->mot_mac);
+        $stmt -> bindParam("emp_id",$mote->emp_id);
+        $stmt -> bindParam("mot_estado",$mote->mot_estado);
+        $stmt->bindParam("mot_id", $id);
         $stmt->execute();
 
         
@@ -327,26 +339,26 @@ function updateMote($id){
             $estado_mote_sensor_actuador = $estados[$i];
             $cod_mote_sensor_actuador = $codigos[$i];
             
-            $sql2 = "UPDATE mote_sensor_actuador SET cod_sensor_actuador=:cod_sensor_actuador, cod_mote=:cod_mote, pin_mote=:pin_mote, estado_mote_sensor_actuador=:estado_mote_sensor_actuador WHERE cod_mote_sensor_actuador=:cod_mote_sensor_actuador";
+            $sql2 = "UPDATE mote_sensor_actuador SET sen_id=:sen_id, mot_id=:mot_id, mse_pin=:mse_pin, mse_estado=:mse_estado WHERE mse_id=:mse_id";
             $stmt2 = $db->prepare($sql2);
-            $stmt2 -> bindParam("cod_sensor_actuador",$cod_sensor_actuador);
-            $stmt2 -> bindParam("cod_mote",$id);
-            $stmt2 -> bindParam("pin_mote",$pin_mote);
-            $stmt2 -> bindParam("estado_mote_sensor_actuador",$estado_mote_sensor_actuador);
-            $stmt2 -> bindParam("cod_mote_sensor_actuador",$cod_mote_sensor_actuador);
+            $stmt2 -> bindParam("sen_id",$cod_sensor_actuador);
+            $stmt2 -> bindParam("mot_id",$id);
+            $stmt2 -> bindParam("mse_pin",$pin_mote);
+            $stmt2 -> bindParam("mse_estado",$estado_mote_sensor_actuador);
+            $stmt2 -> bindParam("mse_id",$cod_mote_sensor_actuador);
             $stmt2 -> execute();
             
         }
 
-        $sql2 = "SELECT * FROM mote_sensor_actuador WHERE cod_mote=:cod_mote";
+        $sql2 = "SELECT * FROM mote_sensor_actuador WHERE mse_id=:mse_id";
         $stmt2 = $db->prepare($sql2);
-        $stmt2 -> bindParam("cod_mote",$id);
+        $stmt2 -> bindParam("mse_id",$id);
         $stmt2 -> execute();
 
         $listaCodEliminar = [];
 
         while($fila = $stmt2->fetchObject()){
-            $cod_mote_sensor_actuador = $fila->cod_mote_sensor_actuador;
+            $cod_mote_sensor_actuador = $fila->mse_id;
             $Ncod = false;
             for($i=0;$i<count($codigos);$i++){
                 if($cod_mote_sensor_actuador==$codigos[$i]){
@@ -357,9 +369,9 @@ function updateMote($id){
         }
 
         for($i=0;$i<count($listaCodEliminar);$i++){
-            $sql2 = "DELETE FROM mote_sensor_actuador WHERE cod_mote_sensor_actuador=:cod_mote_sensor_actuador";
+            $sql2 = "DELETE FROM mote_sensor_actuador WHERE mse_id=:mse_id";
             $stmt2 = $db->prepare($sql2);
-            $stmt2 -> bindParam("cod_mote_sensor_actuador",$listaCodEliminar[$i]);
+            $stmt2 -> bindParam("mse_id",$listaCodEliminar[$i]);
             $stmt2 -> execute();
         }
 
@@ -372,19 +384,16 @@ function updateMote($id){
             $estado_mote_sensor_actuador = $estados[$i];
             
             
-            $sql2 = "insert into mote_sensor_actuador (cod_sensor_actuador, cod_mote, pin_mote, estado_mote_sensor_actuador) values (:cod_sensor_actuador,:cod_mote,:pin_mote,:estado_mote_sensor_actuador)"; 
+            $sql2 = "INSERT into mote_sensor_actuador (sen_id, mot_id, mse_pin, mse_estado) values (:sen_id,:mot_id,:mse_pin,:mse_estado)"; 
             $stmt2 = $db->prepare($sql2);
-            $stmt2 -> bindParam("cod_sensor_actuador",$cod_sensor_actuador);
-            $stmt2 -> bindParam("cod_mote",$id);
-            $stmt2 -> bindParam("pin_mote",$pin_mote);
-            $stmt2 -> bindParam("estado_mote_sensor_actuador",$estado_mote_sensor_actuador);
+            $stmt2 -> bindParam("sen_id",$cod_sensor_actuador);
+            $stmt2 -> bindParam("mot_id",$id);
+            $stmt2 -> bindParam("mse_pin",$pin_mote);
+            $stmt2 -> bindParam("mse_estado",$estado_mote_sensor_actuador);
             $stmt2 -> execute();
             
         }
         
-
-        
-
         $db->commit(); 
         $db = null;
         echo 'BIEN';
@@ -437,17 +446,84 @@ function getSensor($id) {
     }
 }
 
+//FUNCIONES REGLAS
+function getReglas() {
+    $sql = "SELECT reg_id, ale_mensaje, reg_valor, con_nombre, con_operador, S.sen_nombre as sensor, A.sen_nombre as actuador 
+    FROM regla, alerta, condicion, sensor_actuador as S, sensor_actuador as A where regla.ale_id=alerta.ale_id 
+    and regla.con_id=condicion.con_id and regla.sen_id=S.sen_id and regla.act_id=A.sen_id order by reg_id";
+    try {
+        $db = getConnection();
+        $stmt = $db->query($sql);
+        $reglas = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+        echo '{"regla": ' . json_encode($reglas) . '}';
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
+function getReglaPiscina($id) {
+    $sql = "SELECT * FROM piscina_regla where pis_id=:id";
+    try {
+        $db = getConnection();
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam("id", $id);
+        $stmt->execute();
+        $reglas = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+        echo '{"regla": ' . json_encode($reglas) . '}';
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
+//FUNCIONES CONDICIONES
+function getCondiciones() {
+    $sql = "select * FROM condicion";
+    try {
+        $db = getConnection();
+        $stmt = $db->query($sql);
+        $condiciones = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+        echo '{"condicion": ' . json_encode($condiciones) . '}';
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
+//FUNCIONES ALERTAS
+function getAlertas() {
+    $sql = "select * FROM alerta";
+    try {
+        $db = getConnection();
+        $stmt = $db->query($sql);
+        $alertas = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+        echo '{"alerta": ' . json_encode($alertas) . '}';
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
 
 //FUNCIONES USUARIO
 function getUsuario($id) {
     $sql = "SELECT * FROM usuario, empresa, rol, cargo WHERE usu_id=:usu_id and empresa.emp_id=usuario.emp_id 
     and rol.rol_id=usuario.rol_id and cargo.car_id=rol.car_id";
+    $sql2 = "SELECT * FROM usuario, rol, cargo WHERE usu_id=:usu_id and rol.rol_id=usuario.rol_id and
+     cargo.car_id=rol.car_id";
     try {
         $db = getConnection();
         $stmt = $db->prepare($sql);
         $stmt->bindParam("usu_id", $id);
         $stmt->execute();
         $usuario = $stmt->fetchObject();
+        if(!$usuario){
+             $stmt = $db->prepare($sql2);
+            $stmt->bindParam("usu_id", $id);
+            $stmt->execute();
+            $usuario = $stmt->fetchObject();
+        }
         $db = null;
         echo json_encode($usuario);
     } catch(PDOException $e) {
@@ -511,7 +587,7 @@ function updateUsuario($id) {
 
 //FUNCIONES PISCINA
 function getPiscina($id) {
-    $sql = "SELECT * FROM piscina WHERE cod_piscina=:cod_piscina";
+    $sql = "SELECT * FROM piscina WHERE pis_id=:cod_piscina";
     try {
         $db = getConnection();
         $stmt = $db->prepare($sql);
@@ -525,12 +601,26 @@ function getPiscina($id) {
     }
 }
 
+function getPiscinas() {
+    $sql = "SELECT * FROM piscina order by pis_nombre";
+    try {
+        $db = getConnection();
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $piscina = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+        echo json_encode($piscina);
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
 
 //ASIGANACION SENSORES PISCINA
 function getSensorActuadorPiscina($id) {
     $sql = "SELECT * FROM piscina_mote_sensor_actuador, mote_sensor_actuador, sensor_actuador, mote
-     WHERE piscina_mote_sensor_actuador.cod_piscina=:id AND piscina_mote_sensor_actuador.cod_mote_sensor_actuador=mote_sensor_actuador.cod_mote_sensor_actuador
-     AND mote_sensor_actuador.cod_sensor_actuador=sensor_actuador.cod_sensor_actuador AND mote_sensor_actuador.cod_mote=mote.cod_mote";
+     WHERE piscina_mote_sensor_actuador.pis_id=:id AND piscina_mote_sensor_actuador.mse_id=mote_sensor_actuador.mse_id
+     AND mote_sensor_actuador.sen_id=sensor_actuador.sen_id AND mote_sensor_actuador.mot_id=mote.mot_id";
     try {
         $db = getConnection();
         $stmt = $db->prepare($sql);

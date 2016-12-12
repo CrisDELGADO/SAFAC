@@ -35,9 +35,13 @@
 							
 
 							if($_REQUEST['v']==1){
-								if($ver)
+								if($ver&&$_SESSION['IDROL']==1)
 								{
 									echo '<li class="active"><a href="#ver-chart" data-toggle="tab"> Listar </a></li>';
+								}
+								if($ver&&$_SESSION['IDROL']!=1)
+								{
+									echo '<li class="active"><a href="#crear-chart" data-toggle="tab"> Mi Empresa </a></li>';
 								}
 								if($crear)
 								{
@@ -47,7 +51,12 @@
 								if($ver)
 								{
 									if($crear)echo '<li><a href="#ver-chart" data-toggle="tab"> Listar </a></li>';
-									else echo '<li class="active"><a href="#ver-chart" data-toggle="tab"> Listar </a></li>';
+									else {
+										if($_SESSION['IDROL']==1)
+											echo '<li class="active"><a href="#ver-chart" data-toggle="tab"> Listar </a></li>';
+										else
+											echo '<li class="active"><a href="#crear-chart" data-toggle="tab"> Mi Empresa </a></li>';
+									}
 								}
 								if($crear)
 								{
@@ -59,7 +68,7 @@
 					</ul>
 					<div class="tab-content no-padding">
 						<!-- Morris chart - Sales -->
-						<div class="chart tab-pane <?php if($_REQUEST['v']!=1)echo 'active'; ?>" id="crear-chart" style="position: relative;">
+						<div class="chart tab-pane <?php if($_REQUEST['v']!=1)echo 'active';if($_SESSION['IDROL']!=1)echo ' active'; ?>" id="crear-chart" style="position: relative;">
 							<form role="form" name="formNuevaEmpresa">
 								<div class="box-body">
 									<div class="col-lg-4 ">
@@ -94,8 +103,8 @@
 										<div class="form-group">
 											<label>Estado:</label>
 											<select class="form-control" name="estado_empresa" style="cursor:pointer;">
-												<option value="True">Habilitado</option>
-												<option value="False">Deshabilitado</option>
+												<option value="true">Habilitado</option>
+												<option value="false">Deshabilitado</option>
 											</select>
 										</div>
 									</div>
@@ -150,11 +159,16 @@
 							</form>
 
 							<div style="text-align:center">
+								<?php if($_SESSION['IDROL']!=1){
+									if($editar){ ?>
+								<button class="btn btn-primary btn-lg" onclick="editarMiEmpresa(); return false;"><i class="fa fa-save"></i> Guardar Cambios</button>
+								<?php }}else{ ?>
 								<button class="btn btn-primary btn-lg" onclick="nuevaEmpresa(); return false;"><i class="fa fa-save"></i> Guardar</button>
+								<?php } ?>
 							</div>
 							<br>
 						</div>
-						<div class="chart tab-pane <?php if($_REQUEST['v']==1)echo 'active'; ?>" id="ver-chart" style="position: relative;">
+						<div class="chart tab-pane <?php if($_REQUEST['v']==1&&$_SESSION['IDROL']==1)echo 'active'; ?>" id="ver-chart" style="position: relative;">
 							<div class="box-body table-responsive">
 								<table id="example1" class="table table-bordered table-striped">
 									<thead>
@@ -366,6 +380,9 @@
 		document.getElementById("mapa").innerHTML = document.getElementById('ubicacion_empresa').value; 
 	});
 
+ 
+		
+
 	//Llenado de Paises
 	$.ajax({
 		url: 'webservice/WService.php/pais/',
@@ -386,6 +403,9 @@
 		}
 	});
 
+	llenarDatosMiEmpresa();
+
+	
 	function llenarProvincias(){
 		var id = document.getElementById("pais_id").value;
 		$.ajax({
@@ -518,6 +538,101 @@
 		});
 	}
 
+	function llenarDatosMiEmpresa(){
+		var codPais = 0;
+		var codProvincia = 0;
+		var codCanton = 0;
+		var codParroquia = 0;
+		$.ajax({
+			url: 'webservice/WService.php/empresa/<?= $_SESSION["IDEMPRESA"] ?>',
+			dataType:'json',
+			type:'get',
+			cache:false,
+			async: false,
+      		crossDomain: true,
+			success: function(data){
+				var datos = '';
+				$(data).each(function(index, value){
+					document.formNuevaEmpresa.codigo_empresa.value = value.emp_id; 
+					document.formNuevaEmpresa.nombre_empresa.value = value.emp_nombre; 
+					document.formNuevaEmpresa.ruc_empresa.value = value.emp_ruc; 
+					document.formNuevaEmpresa.direccion_empresa.value = value.emp_direccion; 
+					document.formNuevaEmpresa.telefono_empresa.value = value.emp_telefono; 
+					document.formNuevaEmpresa.estado_empresa.value = value.emp_estado; 
+					document.formNuevaEmpresa.ubicacion_empresa.value = value.emp_ubicacion;
+					document.getElementById('mapa').innerHTML = value.emp_ubicacion; 
+					document.getElementById('ubicacion_empresa').innerHTML = value.emp_ubicacion;
+					document.getElementById('pais_id').value = value.pai_id;
+					codPais = value.pai_id
+					codProvincia = value.pro_id;
+					codCanton = value.can_id;
+					codParroquia = value.par_id;
+					
+				});
+
+			}
+		});
+		
+		
+		$.ajax({
+			url: 'webservice/WService.php/provincia/'+codPais,
+			dataType:'json',
+			type:'get',
+			async: false,
+			crossDomain: true,
+			cache: false,
+			success: function(data){
+				var datos = '';
+				$(data.provincia).each(function(index, value){
+					datos +="<option value='"+value.pro_id+"'>"+value.pro_nombre+"</option>";
+				});
+				document.getElementById("provincia_id").innerHTML = datos; 
+				document.getElementById("provincia_id").selectedIndex=-1;
+				
+			}
+		});
+
+		document.getElementById('provincia_id').value = codProvincia;
+
+		$.ajax({
+			url: 'webservice/WService.php/canton/'+codProvincia,
+			dataType:'json',
+			type:'get',
+			async: false,
+			crossDomain: true,
+			cache: false,
+			success: function(data){
+				var datos = '';
+				$(data.canton).each(function(index, value){
+					datos +="<option value='"+value.can_id+"'>"+value.can_nombre+"</option>";
+				});
+				document.getElementById("canton_id").innerHTML = datos; 
+				document.getElementById("canton_id").selectedIndex=-1;
+			}
+		});
+
+		document.getElementById('canton_id').value = codCanton;
+
+		$.ajax({
+			url: 'webservice/WService.php/parroquia/'+codCanton,
+			dataType:'json',
+			type:'get',
+			async: false,
+			crossDomain: true,
+			cache: false,
+			success: function(data){
+				var datos = '';
+				$(data.parroquia).each(function(index, value){
+					datos +="<option value='"+value.par_id+"'>"+value.par_nombre+"</option>";
+				});
+				document.getElementById("parroquia_id").innerHTML = datos; 
+				document.getElementById("parroquia_id").selectedIndex=-1;
+			}
+		});
+
+		document.getElementById('parroquia_id').value = codParroquia;		
+	}
+
 	function nuevaEmpresa(){
 		//DATOS EMPRESA
 		var nombreEmpresa = document.formNuevaEmpresa.nombre_empresa.value;
@@ -633,6 +748,48 @@
 						toastr.success('Cambios guardados con éxito','Estado');
 						setTimeout(function(){
 							window.location.href = 'empresa.php?v=1';
+						},1000)
+
+					}else{
+						toastr.options = {"timeOut": "1000"};
+						toastr.error(mensajeRespuesta,'Estado');
+					}
+				}
+			}
+			ajax.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+			ajax.send("codigo="+codEmpresa+"&nombre="+nombreEmpresa+"&ruc="+rucEmpresa+"&direccion="+direccionEmpresa+
+			"&telefono="+telefonoEmpresa+"&estado="+estadoEmpresa+"&parroquia_id="+parroquia+
+			"&ubicacion="+ubicacion);
+		}
+	}
+
+	
+	function editarMiEmpresa(){
+		var codEmpresa = document.formNuevaEmpresa.codigo_empresa.value;
+		var nombreEmpresa = document.formNuevaEmpresa.nombre_empresa.value;
+		var rucEmpresa = document.formNuevaEmpresa.ruc_empresa.value;
+		var direccionEmpresa = document.formNuevaEmpresa.direccion_empresa.value;
+		var telefonoEmpresa = document.formNuevaEmpresa.telefono_empresa.value;
+		var estadoEmpresa = document.formNuevaEmpresa.estado_empresa.value;
+		var parroquia = document.formNuevaEmpresa.parroquia_id.value;
+		var ubicacion = document.formNuevaEmpresa.ubicacion_empresa.value;
+
+		if(nombreEmpresa.trim()==''||rucEmpresa.trim()==''||direccionEmpresa.trim()==''||telefonoEmpresa.trim()==''
+		||ubicacion.trim()==''||parroquia==''){
+			toastr.options = {"timeOut": "1000"};
+			toastr.error('Llene todos los campos','Estado');
+		}else{
+			ajax = objetoAjax();
+			ajax.open("POST", "empresa/editar_empresa.php", true);
+			ajax.onreadystatechange=function() {
+				if (ajax.readyState==4) {
+					var mensajeRespuesta = ajax.responseText;
+
+					if(mensajeRespuesta == 'BIEN'){
+						toastr.options = {"timeOut": "1000"};
+						toastr.success('Cambios guardados con éxito','Estado');
+						setTimeout(function(){
+							window.location.href = 'empresa.php';
 						},1000)
 
 					}else{
